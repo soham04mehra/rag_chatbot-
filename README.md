@@ -10,6 +10,44 @@ This is a Streamlit-based web application that allows users to upload PDF docume
 - **High-Quality Embeddings**: Uses **OpenAI Embeddings** to convert text chunks into vector representations.
 - **Vector Database**: Utilizes **ChromaDB** for efficient storage and retrieval of document chunks.
 
+## System Architecture
+
+The application follows a standard Conversational Retrieval-Augmented Generation (RAG) architecture:
+
+```mermaid
+graph TD
+    %% Document Ingestion Flow
+    subgraph Document Ingestion
+        A[PDF Documents] --> B(PyPDFLoader)
+        B --> C(Text Splitter)
+        C --> D(OpenAI Embeddings)
+        D --> E[(Chroma Vector Store)]
+    end
+
+    %% Query and Retrieval Flow
+    subgraph Query Processing
+        F[User Query] --> G{History Aware Retriever}
+        H[Chat History] --> G
+        G -->|Reformulates Query| I(ChatGroq LLM)
+        I -->|Standalone Query| E
+    end
+
+    %% Answer Generation
+    subgraph Answer Generation
+        E -->|Retrieved Context| J(QA Chain)
+        F --> J
+        H --> J
+        J -->|Context + Query + History| K(ChatGroq LLM)
+        K --> L[Final Assistant Answer]
+    end
+```
+
+### Workflow
+1. **Document Ingestion**: Uploaded PDFs are parsed, split into manageable chunks, converted into vector embeddings via OpenAI, and stored in a local ChromaDB vector store.
+2. **Contextualizing Queries**: When a user asks a question, the system looks at the current chat history and the new question. It uses the Groq LLM to rewrite the question into a "standalone" query that makes sense without needing the history.
+3. **Retrieval**: The standalone query is used to search the ChromaDB vector store for the most relevant document chunks.
+4. **Answer Generation**: The original question, the chat history, and the retrieved chunks (context) are fed into the Groq LLM to generate a concise, accurate answer.
+
 ## Prerequisites
 
 Before running the application, you'll need API keys for the services used:
